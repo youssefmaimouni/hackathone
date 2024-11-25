@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>holla</h1>
+    {% if departments %}
+    <h5>dept</h5>
+    <table>
+        {% for department in departments  %}
+                <tr>
+                    <td>{{department.name}}</td>
+                </tr>
+        {% endfor %}
+    
+    </table>
+    {% else %}
+    <p>No departments found</p>
+    {% endif %}
+    {% if professors %}
+    <h5>dept</h5>
+    <table>
+        {% for professor in professors  %}
+                <tr>
+                    <td>{{professor.last_name}}</td>
+                </tr>
+        {% endfor %}
+    
+    </table>
+    {% else %}
+    <p>No professors found</p>
+    {% endif %}
+    {% if courses %}
+    <h5>dept</h5>
+    <table>
+        {% for course in courses  %}
+                <tr>
+                    <td>{{course.title}}</td>
+                </tr>
+        {% endfor %}
+    
+    </table>
+    {% else %}
+    <p>No courses found</p>
+    {% endif %}
+    
+</body>
+</html>
