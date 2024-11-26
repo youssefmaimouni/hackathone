@@ -721,7 +721,7 @@ def get_department_completion_rate_chart():
     img_b64 = base64.b64encode(img.read()).decode('utf-8')
 
     # Return the image as a response
-    return Response(f'<img src="data:image/png;base64,{img_b64}" />', mimetype='text/html')
+    return jsonify({"image": img_b64})
 
 @app.route("/statistic_2", methods=["GET"])
 def get_courses_per_department_chart():
@@ -755,7 +755,7 @@ def get_courses_per_department_chart():
     img_b64 = base64.b64encode(img.read()).decode('utf-8')
 
     # Return the image as a response
-    return Response(f'<img src="data:image/png;base64,{img_b64}" />', mimetype='text/html')
+    return jsonify({"image": img_b64})
 
 
 @app.route("/statistic_3", methods=["GET"])
@@ -793,11 +793,13 @@ def get_skills_per_course_chart():
     # Convert the plot to a PNG image and encode it to base64
     img = io.BytesIO()
     plt.savefig(img, format='png')
-    img.seek(0)
+    img.seek(0)  # Rewind the buffer to the beginning
+
+    # Encode the image as a Base64 string
     img_b64 = base64.b64encode(img.read()).decode('utf-8')
 
-    # Return the image as a response
-    return Response(f'<img src="data:image/png;base64,{img_b64}" />', mimetype='text/html')
+    # Return the image as JSON
+    return jsonify({"image": img_b64})
 
 
 from sqlalchemy import func
@@ -859,8 +861,8 @@ def get_courses_per_department_over_time():
     img.seek(0)
     img_b64 = base64.b64encode(img.read()).decode('utf-8')
 
-    html_content = f'<img src="data:image/png;base64,{img_b64}" />'
-    return Response(html_content, mimetype='text/html')
+    # Return just the Base64 string as JSON
+    return jsonify({"image": img_b64})
 
 
 @app.route("/statistic_5/<int:id_employee>", methods=["GET"])
@@ -888,13 +890,15 @@ def get_professor_working_days(id_employee):
     ax.set_ylabel('Total Working Days')
     ax.set_title('Total Working Days for Each Professor')
 
-    # Save the plot to a BytesIO object
     img = io.BytesIO()
     fig.savefig(img, format='png')
     img.seek(0)
 
-    # Return the image as a response
-    return Response(img, mimetype='image/png')
+    # Encode the image as a Base64 string
+    img_base64 = base64.b64encode(img.read()).decode('utf-8')
+
+    # Return the image as JSON
+    return jsonify({"image": img_base64})
 
 
 @app.route('/admin/create', methods=['POST'])
