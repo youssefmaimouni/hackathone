@@ -271,10 +271,9 @@ def login():
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 @app.route("/profile", methods=["GET"])
-@jwt_required()
 def get_profile():
     # Retrieve the JWT identity
-    admin_id = get_jwt_identity()
+    admin_id = 3
 
     # Debug the value of admin_id
     print("JWT Identity:", admin_id)
@@ -547,7 +546,7 @@ def get_professor_profile(id):
         "professor_number": professor.professor_number
     }), 200
     # Endpoint to add a new professor (POST)
-@app.route('/professor/<int:id>', methods=['GET'])
+@app.route('/professors/<int:id>', methods=['GET'])
 def get_professor_profil(id):
     professor = Professor.query.get(id)
 
@@ -565,7 +564,7 @@ def get_professor_profil(id):
         "salary": professor.salary,
         "professor_number": professor.professor_number
     }), 200
-@app.route('/professor', methods=['POST'])
+@app.route('/professors', methods=['POST'])
 def add_professor():
     data = request.get_json()
 
@@ -573,8 +572,8 @@ def add_professor():
     hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     new_professor = Professor(
-        first_name=data['first_name'],
-        last_name=data['last_name'],
+        first_name=data['firstname'],
+        last_name=data['lastname'],
         email=data['email'],
         hire_date=data['hire_date'],
         is_active=data.get('is_active', True),
@@ -586,7 +585,7 @@ def add_professor():
     db.session.add(new_professor)
     db.session.commit()
     
-    return jsonify({"message": "Professor created successfully"}), 201
+    return jsonify({"message": "Professor created successfully","prof_id":new_professor.id}), 201
 
 
 # Endpoint PUT pour mettre à jour un professeur
@@ -660,7 +659,7 @@ def get_professor_courses(id):
     # Return the list of courses
     return jsonify(courses), 200
 
-@app.route("/professor/<int:prof_id>/course/<int:course_id>", methods=["GET"])
+@app.route("/professor/<int:prof_id>/courses/<int:course_id>", methods=["GET"])
 def get_professor_course(prof_id,course_id):
     # Query the CourseProfessor table to get all course IDs associated with the professor
     course_professors = CourseProfessor.query.filter_by(professor_id=prof_id).all()
@@ -860,7 +859,8 @@ def get_courses_per_department_over_time():
     img.seek(0)
     img_b64 = base64.b64encode(img.read()).decode('utf-8')
 
-    return Response(f'<img src="data:image/png;base64,{img_b64}" />', mimetype='text/html')
+    html_content = f'<img src="data:image/png;base64,{img_b64}" />'
+    return Response(html_content, mimetype='text/html')
 
 
 @app.route("/statistic_5/<int:id_employee>", methods=["GET"])
