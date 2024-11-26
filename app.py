@@ -1,15 +1,19 @@
-from flask import Flask , render_template, request, redirect, url_for
+from flask import Flask , render_template, request, redirect, url_for,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import pandas as pd
+import bcrypt
+from flask_jwt_extended import JWTManager, create_access_token
+
 
 
 app = Flask(__name__)
 
 # Configure the database URI
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///university.db'  # Example with SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/university'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+jwt = JWTManager(app)  
 
 # Define the models based on the provided ER diagram
 
@@ -23,43 +27,82 @@ class Admin(db.Model):
 
 class Department(db.Model):
     __tablename__ = 'department'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(255), nullable=True)
-    department_code = db.Column(db.String(50), nullable=False)
-    created_date = db.Column(db.DateTime, default=datetime.utcnow)
-    phone_number = db.Column(db.String(15), nullable=True)
-    email = db.Column(db.String(120), nullable=True)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    department_code = db.Column(db.Text, nullable=True)
+    created_date = db.Column(db.Text, nullable=True)
+    phone_number = db.Column(db.Text, nullable=True)
+    email = db.Column(db.Text, nullable=True)
+
+class Dataset(db.Model):
+    __tablename__ = 'dataset'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    school_department = db.Column(db.String(255), nullable=True)
+    course_title = db.Column(db.String(255), nullable=True)
+    date_and_time = db.Column(db.DateTime, nullable=True)
+    finish_time = db.Column(db.DateTime, nullable=True)
+    email = db.Column(db.String(255), nullable=True)
+    required_skill = db.Column(db.String(255), nullable=True)
+    professors = db.Column(db.String(255), nullable=True)
+    gained_skill = db.Column(db.String(355), nullable=True)
 
 class Professor(db.Model):
     __tablename__ = 'professor'
-    id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(100), nullable=False)
-    last_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    first_name = db.Column(db.Text, nullable=False)
+    last_name = db.Column(db.Text, nullable=False)
+    email = db.Column(db.Text, nullable=False)
+    hire_date = db.Column(db.Date, nullable=True)
+    is_active = db.Column(db.Boolean, default=None, nullable=True)
+    password = db.Column(db.Text, nullable=False)
+    birth_date = db.Column(db.Text, nullable=True)
+    phone_number = db.Column(db.Text, nullable=True)
+    salary = db.Column(db.Text, nullable=True)
+    professor_number = db.Column(db.Text, nullable=True)
+
 
 class Course(db.Model):
     __tablename__ = 'course'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    is_completed = db.Column(db.Boolean, default=False)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.Text, nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)
+    is_completed = db.Column(db.Boolean, default=None)
+    course_manager_email = db.Column(db.Text, nullable=True)
+    client_company_name = db.Column(db.Text, nullable=True)
+    contract_number = db.Column(db.Text, nullable=True)
+    invoice_status = db.Column(db.Text, nullable=True)
+    contract_start_date = db.Column(db.Text, nullable=True)
+    approval_status = db.Column(db.Text, nullable=True)
+
+    # Relationship to Department (assuming you have a Department model defined)
+    department = db.relationship('Department', backref='courses', lazy=True)
 
 class GainedSkill(db.Model):
     __tablename__ = 'gained_skill'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.Text, nullable=False)
 
 class RequiredSkill(db.Model):
     __tablename__ = 'required_skill'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.Text, nullable=False)
 
 class CourseRequiredSkill(db.Model):
     __tablename__ = 'course_required_skill'
+
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), primary_key=True)
     required_skill_id = db.Column(db.Integer, db.ForeignKey('required_skill.id'), primary_key=True)
-    course = db.relationship('Course', backref=db.backref('course_required_skills', lazy=True))
-    required_skill = db.relationship('RequiredSkill', backref=db.backref('course_required_skills', lazy=True))
+
+    # Optionally, define relationships for easier access to related objects:
+    course = db.relationship('Course', backref=db.backref('required_skills', lazy=True))
+    required_skill = db.relationship('RequiredSkill', backref=db.backref('courses', lazy=True))
 
 class CourseGainedSkill(db.Model):
     __tablename__ = 'course_gained_skill'
@@ -70,19 +113,17 @@ class CourseGainedSkill(db.Model):
 
 class CourseProfessor(db.Model):
     __tablename__ = 'course_professor'
+
     course_id = db.Column(db.Integer, db.ForeignKey('course.id'), primary_key=True)
     professor_id = db.Column(db.Integer, db.ForeignKey('professor.id'), primary_key=True)
-    assignment_date = db.Column(db.DateTime, default=datetime.utcnow)
-    finish_date = db.Column(db.DateTime)
-    course = db.relationship('Course', backref=db.backref('course_professors', lazy=True))
-    professor = db.relationship('Professor', backref=db.backref('course_professors', lazy=True))
+    assignment_date = db.Column(db.DateTime, nullable=False)
+    finish_date = db.Column(db.DateTime, nullable=True)
 
-class AppearIn(db.Model):
-    __tablename__ = 'appear_in'
-    admin_id = db.Column(db.Integer, db.ForeignKey('admin.id'), primary_key=True)
-    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), primary_key=True)
-    admin = db.relationship('Admin', backref=db.backref('appear_in', lazy=True))
-    department = db.relationship('Department', backref=db.backref('appear_in', lazy=True))
+    # Relationship to Course and Professor
+    course = db.relationship('Course', backref=db.backref('professors', lazy=True))
+    professor = db.relationship('Professor', backref=db.backref('courses', lazy=True))
+
+
 
 def restore_Departments(csv_file):
     # Charger le fichier CSV
@@ -192,11 +233,46 @@ def get_departments():
     print('departments loaded')
     return render_template("index.html",departments=departments,professors=professors,courses=courses)
 
+# Flask-JWT-Extended setup
+app.config["JWT_SECRET_KEY"] = "your-secret-key"
+jwt = JWTManager(app)
+
+# Login route for admins
+@app.route("/login", methods=["POST"])
+def login():
+    # Get data from the request
+    email = request.json.get("email")
+    password = request.json.get("password")
+
+    # Validate input
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+
+    # Query the admin table for the given email
+    admin = Admin.query.filter_by(email=email).first()
+
+    # Check if the admin exists and if the password is correct
+    if admin and bcrypt.checkpw(password.encode("utf-8"), admin.password.encode("utf-8")):
+        # Create a JWT access token
+        access_token = create_access_token(identity={"id": admin.id, "email": admin.email})
+        return jsonify({"access_token": access_token})
+
+    # If authentication fails
+    return jsonify({"error": "Invalid email or password"}), 401
 
 
+
+@app.route('/admin/create', methods=['POST'])
+def create_admin():
+    new_admin = Admin(
+    first_name="John",
+    last_name="Doe",
+    email="admin@example.com",
+    password=bcrypt.hashpw("adminpass".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+    )
+    db.session.add(new_admin)
+    db.session.commit()
 
 
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
