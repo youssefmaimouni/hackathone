@@ -12,18 +12,16 @@ from sqlalchemy import func
 from sqlalchemy import extract
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, DateTime
-from flask_cors import CORS
 
 
 
 app = Flask(__name__)
-CORS(app)
 
 # Configure the database URI
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/hack'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-jwt = JWTManager(app)
+jwt = JWTManager(app)  
 
 # Define the models based on the provided ER diagram
 
@@ -275,7 +273,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 @app.route("/profile", methods=["GET"])
 def get_profile():
     # Retrieve the JWT identity
-    admin_id = 3
+    admin_id = 1
 
     # Debug the value of admin_id
     print("JWT Identity:", admin_id)
@@ -913,8 +911,6 @@ def create_admin():
     )
     db.session.add(new_admin)
     db.session.commit()
-    
-    
 
 
 
